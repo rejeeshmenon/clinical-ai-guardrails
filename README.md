@@ -85,4 +85,4 @@ The source repositories are private. The extraction was done by copying named fi
 
 ## License
 
-To be decided by the author before publication; until then, all rights reserved.
+MIT. See `LICENSE`. The clinical thresholds and prompts encode the regulatory context of one network in southern India; reuse elsewhere needs re-derivation, not just relicensing.
