@@ -1,0 +1,87 @@
+name: Priya — CI grep gates + harnesses
+# Runs on every PR to main and on main itself.
+#
+# Scope: architectural invariants + logic correctness.
+# TypeScript compilation is handled by deploy.sh on the server — if
+# it doesn't compile, the deploy fails and bad code never runs. We
+# don't duplicate that check here because the NestJS workspace files
+# (package.json, tsconfig.json) live on the server, not in this repo.
+#
+# Grep rules enforced:
+#   1. No direct WahaService / NotificationService imports in ai-agent/
+#   2. No @anthropic-ai/sdk imports in ai-agent/ (axios only)
+#   3. chatwoot.client.ts per-token scope (bot → messages/toggle;
+#      admin → labels/custom_attributes)
+#   4. Twenty GraphQL mutations (raw graphql query strings) only
+#      inside common/twenty*.ts
+#
+# Plus: 7 standalone test harnesses, 152 logic tests.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# FU-CI-WASTE-CLEANUP (T1): cancel a superseded run when a newer commit
+# lands on the same ref. Only in-flight runs of an OLD commit are cancelled;
+# the latest commit is always fully checked. Zero loss of final signal.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  priya-gates:
+    runs-on: ubuntu-latest
+    name: Priya grep gates + harnesses
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Priya dispatcher + SDK + scope grep gate
+        run: bash scripts/priya-dispatcher-grep-gate.sh
+
+      - name: Twenty single-writer rule (raw GraphQL only)
+        run: |
+          set -eo pipefail
+          # Rule: raw GraphQL mutation strings for Twenty may only
+          # appear inside the Twenty service layer. Business logic
+          # calling this.twenty.createPerson() or this.twenty.updatePerson()
+          # is the CORRECT pattern — that's what the single-writer
+          # abstraction is for.
+          #
+          # We only care about: direct GraphQL strings like
+          # `mutation { createPerson ... }` or graphql-request calls
+          # with raw mutations outside the sanctioned files.
+          offenders=$(grep -rEn 'graphql.{0,30}mutation.*(createPerson|updatePerson|createLead|updateLead)' \
+            nestjs-src 2>/dev/null \
+            | grep -v -E 'nestjs-src/common/twenty[\.-]' \
+            | grep -vE '^\s*\*' \
+            | grep -vE '^[^:]+://' \
+            || true)
+          if [ -n "$offenders" ]; then
+            echo "✗ Twenty single-writer rule violated:"
+            echo "$offenders"
+            echo ""
+            echo "Raw GraphQL mutations for Twenty must stay inside"
+            echo "nestjs-src/common/twenty*.ts. Business logic should"
+            echo "call this.twenty.createPerson() etc. through the"
+            echo "centralized TwentyService, not issue GraphQL directly."
+            exit 1
+          fi
+          echo "✓ Twenty single-writer rule clean"
+
+      - name: Run standalone harnesses (152 logic tests, no external deps)
+        run: |
+          set -e
+          for s in hmac language dispatcher handoff escalation circuit-breaker observability; do
+            echo "── $s ──"
+            node scripts/run-priya-${s}-tests.mjs
+          done

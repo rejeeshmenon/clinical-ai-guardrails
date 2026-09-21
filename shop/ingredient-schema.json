@@ -1,0 +1,96 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://dermavue.com/schemas/ingredient.json",
+  "title": "DermaVue Ingredient Profile",
+  "description": "Clinical monograph for a single INCI ingredient. Physician-reviewed before publication. Populated by scripts/generate_ingredient_profiles.py (PubMed E-utilities + Claude Haiku).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "inci_name", "common_name", "category", "evidence_level",
+    "primary_function", "mechanism_of_action", "skin_concerns",
+    "effective_concentration", "pregnancy_safe", "photo_sensitivity",
+    "fitzpatrick_iv_vi_notes", "description_short", "description_long",
+    "studies", "human_reviewed", "ai_generated", "generated_at"
+  ],
+  "properties": {
+    "inci_name":       { "type": "string", "description": "Uppercase INCI / pharmacopoeia name" },
+    "common_name":     { "type": "string", "description": "Patient-recognisable name" },
+    "cas_number":      { "type": ["string", "null"] },
+    "category": {
+      "type": "string",
+      "enum": [
+        "active", "emollient", "humectant", "preservative", "fragrance",
+        "ph_adjuster", "solvent", "surfactant", "antioxidant",
+        "chelating_agent", "emulsifier", "thickener", "exfoliant",
+        "occlusive", "sunscreen_agent", "botanical_extract", "peptide",
+        "vitamin", "conditioning_agent", "antimicrobial", "antifungal",
+        "other"
+      ]
+    },
+    "evidence_level": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "1=anecdotal, 2=in vitro, 3=small clinical, 4=multiple RCTs, 5=systematic reviews"
+    },
+    "primary_function":    { "type": "string" },
+    "mechanism_of_action": { "type": "string" },
+    "skin_concerns": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "hyperpigmentation", "acne", "pih", "aging", "dryness",
+          "sensitivity", "melasma", "rosacea", "eczema", "sun_damage",
+          "dark_circles", "uneven_texture", "enlarged_pores", "oiliness",
+          "dehydration", "hair_loss", "dandruff", "scalp_health",
+          "hair_strength", "wound_healing", "antimicrobial", "antifungal"
+        ]
+      }
+    },
+    "effective_concentration": {
+      "type": "object",
+      "required": ["unit"],
+      "properties": {
+        "min":     { "type": ["number", "null"] },
+        "max":     { "type": ["number", "null"] },
+        "optimal": { "type": ["number", "null"] },
+        "unit":    { "type": "string", "description": "e.g. %, mg, mg/ml, IU" }
+      }
+    },
+    "pregnancy_safe": {
+      "type": "string",
+      "enum": ["safe", "caution", "avoid", "contraindicated", "unknown"]
+    },
+    "photo_sensitivity":      { "type": "boolean" },
+    "fitzpatrick_iv_vi_notes": { "type": "string", "minLength": 30 },
+    "contraindications":       { "type": "array", "items": { "type": "string" } },
+    "synergies":               { "type": "array", "items": { "type": "string" } },
+    "conflicts":               { "type": "array", "items": { "type": "string" } },
+    "description_short":       { "type": "string", "maxLength": 400 },
+    "description_long":        { "type": "string" },
+    "studies": {
+      "type": "array",
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "required": ["title", "year"],
+        "properties": {
+          "pmid":            { "type": ["string", "null"] },
+          "title":           { "type": "string" },
+          "authors":         { "type": "array", "items": { "type": "string" } },
+          "journal":         { "type": "string" },
+          "year":            { "type": "integer", "minimum": 1950, "maximum": 2030 },
+          "doi":             { "type": ["string", "null"] },
+          "finding_summary": { "type": "string" }
+        }
+      }
+    },
+    "reviewed_by":     { "type": ["string", "null"] },
+    "reviewed_at":     { "type": ["string", "null"], "format": "date-time" },
+    "human_reviewed":  { "type": "boolean", "description": "Gate: true = visible on PDP; false = name-only surface" },
+    "ai_generated":    { "type": "boolean" },
+    "ai_model":        { "type": "string" },
+    "generated_at":    { "type": "string", "format": "date-time" }
+  }
+}

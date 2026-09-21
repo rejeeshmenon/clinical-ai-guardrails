@@ -1,0 +1,25 @@
+{
+  "name": "clinical-ai-guardrails",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Guardrail, redaction, escalation and evaluation code extracted from two production clinical systems, with two runnable demonstrations and their tests. Synthetic data only.",
+  "type": "commonjs",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "demo": "npm run demo:escalation && npm run demo:redaction",
+    "demo:escalation": "tsx demo/escalation-demo.ts",
+    "demo:redaction": "tsx superhuman/scripts/proof/redaction-glp1-contraindications.ts",
+    "demo:harness": "node priya/scripts/run-priya-escalation-tests.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.2.0"
+  },
+  "dependencies": {
+    "zod": "3.23.8"
+  }
+}
